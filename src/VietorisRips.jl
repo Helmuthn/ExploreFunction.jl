@@ -1,8 +1,7 @@
 using LinearAlgebra: I, norm
-using CairoMakie
+# using CairoMakie
 
-export euclideandistance, inductiveVR, edgelist, H0Barcode, plotH0Barcode, prunedataset
-font_loc = "/home/helmuth/.fonts/truetype/NotoSans/NotoSans-Regular.ttf"
+export euclideandistance, inductiveVR, edgelist, H0Barcode, prunedataset
 
 """
 euclideandistance(dataset)
@@ -181,21 +180,20 @@ function H0Barcode(distances)
     return persistence[:,2:end]
 end
 
-function plotH0Barcode(H0)
-    fig = Figure(   resolution = (1200, 700), 
-                backgroundcolor = RGBf0(0.98, 0.98, 0.98),
-                font=font_loc,
-                fontsize=32)
-    ax1 = fig[1, 1] = Axis(fig, title = "H0 Persistent Homology")
-    for i in 1:size(H0)[2]
-        lines!(H0[:,i],[i,i])
-    end
-    n_ind = size(H0)[2]+1
-    lines!([0,H0[2,end]*1.3],[n_ind,n_ind])
-    lines!([H0[2,end]*1.3,H0[2,end]*1.4],[n_ind,n_ind],linestyle=:dash)
-    ax1.xlabel = "Rips Connection Distance"
-    return fig, ax1
-end
+# function plotH0Barcode(H0)
+#     fig = Figure(   resolution = (1200, 700), 
+#                 backgroundcolor = RGBf0(0.98, 0.98, 0.98),
+#                 fontsize=32)
+#     ax1 = fig[1, 1] = Axis(fig, title = "H0 Persistent Homology")
+#     for i in 1:size(H0)[2]
+#         lines!(H0[:,i],[i,i])
+#     end
+#     n_ind = size(H0)[2]+1
+#     lines!([0,H0[2,end]*1.3],[n_ind,n_ind])
+#     lines!([H0[2,end]*1.3,H0[2,end]*1.4],[n_ind,n_ind],linestyle=:dash)
+#     ax1.xlabel = "Rips Connection Distance"
+#     return fig, ax1
+# end
 
 function sortH0deaths!(indices,dist_sort,distances)
     ind = 0
