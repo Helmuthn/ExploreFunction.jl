@@ -1,7 +1,7 @@
 # ExploreFunction.jl
 
 [![Build Status](https://github.com/Helmuthn/ExploreFunction.jl/workflows/CI/badge.svg)](https://github.com/Helmuthn/ExploreFunction.jl/actions)
-[![Coverage](https://codecov.io/gh/Helmuthn/ExploreFunction.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/Helmuthn/ExploreFunction.jl)
+[![codecov](https://codecov.io/gh/Helmuthn/ExploreFunction.jl/branch/master/graph/badge.svg?token=GDTPQ3VT8V)](https://codecov.io/gh/Helmuthn/ExploreFunction.jl)
 
 This library is developed as part of a course project for ECE 557, Geometric Control Theory, at the University of Illinois at Urbana-Champaign.
 
