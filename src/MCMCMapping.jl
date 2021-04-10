@@ -1,16 +1,3 @@
-"""
-    MCMCMapping
-    
-Functions used for mapping the connectivity of local minima of
-a known Lipschitz function. The methods follow a stochastic
-gradient descent trajectory and extract persistent homology
-features in the augmented space of perturbation × parameters.
-
-This work was produced as part of the project for the UIUC course
-ECE 557, Geometric Control Theory.
-"""
-module MCMCMapping
-
 using LinearAlgebra: norm
 
 export generatePerturbation, MCMCTrajectory
@@ -89,6 +76,4 @@ function MCMCTrajectory(fₓ, x₀, α, samples, σ, windowlength)
         state[1:N,i] = xₜ + α * (uₜ .- fₓ(xₜ))
     end
     return state
-end
-
 end

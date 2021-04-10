@@ -1,13 +1,3 @@
-"""
-    VietorisRips
-
-This module implements algorithms for constructing the Vietoris-Rips Complex 
-of a point cloud based on the paper.
-The general approach is two steps, first generating the neighborhood graph, 
-then gnerating the simplicial complex based on the weighted graph.
-"""
-module VietorisRips
-
 using LinearAlgebra: I, norm
 using CairoMakie
 
@@ -258,6 +248,4 @@ function prunedataset(distances, ϵ)
     pruned_dist = distances[remaining_indices,remaining_indices]
 
     return pruned_dist, remaining_indices
-end
-
 end
