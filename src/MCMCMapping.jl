@@ -1,10 +1,13 @@
 using LinearAlgebra: norm
+using Random: MersenneTwister
 
 export generatePerturbation, MCMCTrajectory
 
 
+defaultRNG = MersenneTwister()
+
 """
-    generatePerturbation(samples, σ, windowlength)
+    generatePerturbation([ rng,] samples, σ, windowlength)
 
 Generates a random perturbation trajectory.
 
@@ -12,6 +15,7 @@ The trajectory is made of a random gaussian vector, filtered
 through convolution with normalized Hann window of a given length.
 
 ### Arguments
+ - `rng`          -- Random number generator (Optional)
  - `samples`      -- The number of timesteps for the perturbation
  - `σ`            -- The standard deviation of any given Gaussian sample
  - `windowlength` -- The length of the Hann window
@@ -22,9 +26,9 @@ through convolution with normalized Hann window of a given length.
  ### Notes 
  Performs the convolution directly, assumes ``windowlength << samples``
 """
-function generatePerturbation(samples, σ, windowlength)
+function generatePerturbation(rng, samples, σ, windowlength)
 
-    perturbation = σ * randn(samples + windowlength)
+    perturbation = σ * randn(rng, samples + windowlength)
     window = sin.((1:windowlength)/(windowlength+1) * π).^2
 
     # Rescale the window to preserve variance
@@ -34,10 +38,13 @@ function generatePerturbation(samples, σ, windowlength)
                                                     for i in 1:samples]
 end
 
+generatePerturbation(samples, σ, windowlength) = 
+        generatePerturbation(defaultRNG, samples, σ, windowlength)
+
 
 
 """
-    MCMCTrajectory(fₓ, x₀, α, stepsize, samples, σ, windowlength)
+    MCMCTrajectory([rng,] fₓ, x₀, α, stepsize, samples, σ, windowlength)
 
 Generates a trajectory through the state × perturbation space based
 on a noisy gradient descent process using the provided gradient.
@@ -46,6 +53,7 @@ The trajectory evolves according to ``x_{t+1} = x_t + α(uₜ - fₓ(x_t))``,
 where ``uₜ`` represents the random perturbation.
 
 ### Arguments
+ - `rng`          -- Random number generator (Optional)
  - `fₓ`           -- Gradient of the function of interest
  - `x₀`           -- Initial Point
  - `α`            -- Gradient Descent step size
@@ -60,14 +68,14 @@ half of the rows, and perturbations in the second half.
 ### Notes 
 Performs the convolution directly, assumes ``windowlength << samples``
 """
-function MCMCTrajectory(fₓ, x₀, α, samples, σ, windowlength)
+function MCMCTrajectory(rng, fₓ, x₀, α, samples, σ, windowlength)
     N = length(x₀)
     
     # Initialize the state vector
     state = zeros(2*length(x₀),samples)
     state[1:N,1]     .= x₀
     @inbounds for i in 1:N
-        state[N+i,:] .= generatePerturbation(samples,σ,windowlength)
+        state[N+i,:] .= generatePerturbation(rng, samples,σ,windowlength)
     end
 
     @inbounds for i in 2:samples
@@ -77,3 +85,6 @@ function MCMCTrajectory(fₓ, x₀, α, samples, σ, windowlength)
     end
     return state
 end
+
+MCMCTrajectory(fₓ, x₀, α, samples, σ, windowlength) = 
+        MCMCTrajectory(defaultRNG, fₓ, x₀, α, samples, σ, windowlength)
