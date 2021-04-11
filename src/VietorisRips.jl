@@ -48,31 +48,33 @@ end
 """
     edgelist(distances)
 
-Generates a list of graph edges from an adjacency matrix.
+Generates a list of graph edges from a weighted adjacency matrix.
 
 ### Arguments
- - `adjacency` -- Adjacency matrix of a graph 
+ - `distances` --   Adjacency matrix of a graph where connections are
+                    represented by the distance between the nodes.
 
 ### Returns 
-Returns a 2×M matrix of M edges in the graph. 
-
-### Notes 
-Any non-zero elements are interpretted as 1's
+`(simplices, weights)`
+ - `simplices`  -- 2×M matrix of M edges in the graph 
+ - `weights`    -- M dimensional vector of distances
 """
-function edgelist(adjacency)
-    N = size(adjacency)[1]
+function edgelist(distances)
+    N = size(distances)[1]
     simplices = zeros(Int,2,N^2)
+    weights = zeros(N^2)
     ind = 1
     for i in 1:N-1
         for j in i+1:N
-            if !iszero(adjacency[i,j])
+            if !iszero(distances[i,j])
                 simplices[1, ind] = i
                 simplices[2, ind] = j
+                weights[ind] = distances[i,j]
                 ind += 1
             end
         end
     end
-    return simplices[:,1:ind-1]
+    return simplices[:,1:ind-1], weights[1:ind-1]
 end
 
 """
@@ -131,12 +133,18 @@ function inductiveVR(distances, k)
     N = size(distances)[1]
 
     # 1-Simplices
-    V = [edgelist(distances)]
+    edges, weights = edgelist(distances)
+    V = [edges]
+    W = [weights]
 
     # Iteratively expand the complex
     for i in 1:k
         simplices = zeros(Int,i+2,0)
+        weights = zeros(0);
+
         simplices_t = [zeros(Int,i+2,0) for j in 1:Threads.nthreads()]
+        weights_t = [zeros(0) for j in 1:Threads.nthreads()]
+
         # For each i-simplex
         Threads.@threads for j in 1:size(V[end])[2]
             tnum = Threads.threadid()
@@ -147,17 +155,26 @@ function inductiveVR(distances, k)
 
             # Append each element of the intersection into the simplices
             for v in neighbors
-                simplices_t[tnum] = hcat(simplices_t[tnum], sort([v, simplex...]))
+                w = W[end][j]
+                for node in simplex
+                    w = max(w,distances[v,node])
+                end
+                push!(weights_t[tnum],w)
+                new_simplice = sort([v, simplex...])
+                simplices_t[tnum] = hcat(simplices_t[tnum], new_simplice)
             end
         end
 
         @inbounds for j in 1:Threads.nthreads()
             simplices = hcat(simplices,simplices_t[j])
+            append!(weights,weights_t[j])
         end
+        
         # Append the next level of simplices.
         push!(V,simplices)
+        push!(W,weights)
     end
-    return V
+    return V, W
 end
 
 """
