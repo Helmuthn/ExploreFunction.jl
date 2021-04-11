@@ -153,7 +153,7 @@ function H0Barcode(distances)
     p = sortperm(distances[:])[n+2:2:length(distances)]
     i = 1
     @inbounds for ind in p
-        a, b = divrem(ind,n)
+        a, b = divrem(ind-1,n)
         indices[1,i] = a+1
         indices[2,i] = b+1
         dist_sort[i] = distances[ind]
@@ -177,35 +177,9 @@ function H0Barcode(distances)
         end
     end
 
-    return persistence[:,2:end]
+    return persistence[:,1:end-1]
 end
 
-# function plotH0Barcode(H0)
-#     fig = Figure(   resolution = (1200, 700), 
-#                 backgroundcolor = RGBf0(0.98, 0.98, 0.98),
-#                 fontsize=32)
-#     ax1 = fig[1, 1] = Axis(fig, title = "H0 Persistent Homology")
-#     for i in 1:size(H0)[2]
-#         lines!(H0[:,i],[i,i])
-#     end
-#     n_ind = size(H0)[2]+1
-#     lines!([0,H0[2,end]*1.3],[n_ind,n_ind])
-#     lines!([H0[2,end]*1.3,H0[2,end]*1.4],[n_ind,n_ind],linestyle=:dash)
-#     ax1.xlabel = "Rips Connection Distance"
-#     return fig, ax1
-# end
-
-function sortH0deaths!(indices,dist_sort,distances)
-    ind = 0
-    @inbounds for i in 1:n-1 
-        for j in i+1:n
-            ind += 1
-            indices[1,ind] = i
-            indices[2,ind] = j
-            dist_sort[ind] = distances[i,j]
-        end
-    end
-end
 
 """
     prunedataset(distances, ϵ)

@@ -1,6 +1,10 @@
 using ExploreFunction
-using Test
+using SafeTestsets
 
-@testset "ExploreFunction.jl" begin
-    # Write your tests here.
+@safetestset "MCMCMapping.jl" begin
+    include("MCMCMapping_test.jl")
+end
+
+@safetestset "VietorisRips.jl" begin
+    include("VietorisRips_test.jl")
 end
