@@ -134,12 +134,12 @@ function inductiveVR(distances, k)
     V = [edgelist(distances)]
 
     # Iteratively expand the complex
-    
     for i in 1:k
         simplices = zeros(Int,i+2,0)
-
+        simplices_t = [zeros(Int,i+2,0) for j in 1:Threads.nthreads()]
         # For each i-simplex
         Threads.@threads for j in 1:size(V[end])[2]
+            tnum = Threads.threadid()
             simplex = V[end][:,j]
 
             # Compute interaction of neighbors
@@ -147,10 +147,13 @@ function inductiveVR(distances, k)
 
             # Append each element of the intersection into the simplices
             for v in neighbors
-                simplices = hcat(simplices, sort([v, simplex...]))
+                simplices_t[tnum] = hcat(simplices_t[tnum], sort([v, simplex...]))
             end
         end
-        
+
+        @inbounds for j in 1:Threads.nthreads()
+            simplices = hcat(simplices,simplices_t[j])
+        end
         # Append the next level of simplices.
         push!(V,simplices)
     end
