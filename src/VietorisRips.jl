@@ -45,14 +45,27 @@ function lowerneighbors(k, distances)
     return findall(!iszero, distances[k,1:k-1])
 end
 
+"""
+    edgelist(distances)
 
-function edgelist(distances)
-    N = size(distances)[1]
+Generates a list of graph edges from an adjacency matrix.
+
+### Arguments
+ - `adjacency` -- Adjacency matrix of a graph 
+
+### Returns 
+Returns a 2×M matrix of M edges in the graph. 
+
+### Notes 
+Any non-zero elements are interpretted as 1's
+"""
+function edgelist(adjacency)
+    N = size(adjacency)[1]
     simplices = zeros(Int,2,N^2)
     ind = 1
     for i in 1:N-1
         for j in i+1:N
-            if !iszero(distances[i,j])
+            if !iszero(adjacency[i,j])
                 simplices[1, ind] = i
                 simplices[2, ind] = j
                 ind += 1
@@ -62,11 +75,26 @@ function edgelist(distances)
     return simplices[:,1:ind-1]
 end
 
-function neighborintersect(simplex,distances)
-    N = size(distances)[1]
+"""
+    neighborintersect(simplex,adjacency)
+
+Computes the interesection of the neighboring nodes in a simplex.
+
+### Arguments 
+ - `simplex`   -- An array of nodes 
+ - `adjacency` -- Adjacency matrix of a graph 
+
+### Returns 
+A list of nodes adjacent to all nodes 
+
+### Notes 
+Any non-zero elements in `adjacency` are interpretted as 1's
+"""
+function neighborintersect(simplex,adjacency)
+    N = size(adjacency)[1]
     neighbors = [l for l in 1:N]
     for l in 1:size(simplex)[1]
-        intersect!(neighbors,lowerneighbors(simplex[l],distances))
+        intersect!(neighbors,lowerneighbors(simplex[l],adjacency))
     end
     return neighbors
 end
