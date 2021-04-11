@@ -59,12 +59,13 @@ end
     adjacency_test[1,2] = adjacency_test[2,1] = 1
     adjacency_test[2,3] = adjacency_test[3,2] = 1
     adjacency_test[3,4] = adjacency_test[4,3] = 1
-    adjacency_test[2,4] = adjacency_test[4,2] = 1
+    adjacency_test[2,4] = adjacency_test[4,2] = 2
 
-    edges = ExploreFunction.edgelist(adjacency_test)
+    edges, weights = ExploreFunction.edgelist(adjacency_test)
     true_edges = [  1 2 2 3;
                     2 3 4 4]
     @test true_edges == edges
+    @test weights == [1, 1, 2, 1]
 end
 
 @testset "neighborintersect" begin 
@@ -87,10 +88,10 @@ end
     adjacency_test = zeros(4,4)
     adjacency_test[1,2] = adjacency_test[2,1] = 1
     adjacency_test[2,3] = adjacency_test[3,2] = 1
-    adjacency_test[3,4] = adjacency_test[4,3] = 1
+    adjacency_test[3,4] = adjacency_test[4,3] = 2
     adjacency_test[2,4] = adjacency_test[4,2] = 1
 
-    VR = inductiveVR(adjacency_test,2)
+    VR, weights = inductiveVR(adjacency_test,2)
     # Test the 1-simplices 
     true_s1 = [ 1 2 2 3;
                 2 3 4 4]
@@ -102,4 +103,8 @@ end
 
     # Test the 3-simplices 
     @test VR[3][:] == []
+
+    # Test Weights 
+    @test weights[1] == [1, 1, 1, 2]
+    @test weights[2] == [2]
 end
