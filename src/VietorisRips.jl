@@ -113,7 +113,9 @@ dimensional faces.
  - `k`         -- Maximum simplice dimension
 
 ### Returns
-An array of simplicial matrices up to dimension `k`
+`(simplices, weights)`
+ - `simplices`  -- An array of simplicial matrices up to dimension `k`
+ - `weights`    -- Weights associated with `simplices`
 
 ### Notes
 This is the most basic construction mentioned in the paper.
