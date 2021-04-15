@@ -1,5 +1,6 @@
 using LinearAlgebra: norm
 using Random: MersenneTwister
+using LoopVectorization: @avxt
 
 export generatePerturbation, MCMCTrajectory
 
@@ -38,9 +39,31 @@ function generatePerturbation(rng, samples, σ, windowlength)
                                                     for i in 1:samples]
 end
 
+export generatePerturbation_v
+function generatePerturbation_v(rng,samples, σ, windowlength)
+
+    perturbation = σ * randn(rng, samples + windowlength)
+    window = sin.((1:windowlength)/(windowlength+1) * π).^2
+
+    # Rescale the window to preserve variance
+    window ./= norm(window)
+
+    # Allocate Memory
+    out = zeros(samples)
+    @avxt for i in 1:samples 
+        for j in 1:windowlength
+            out[i] += window[j] * perturbation[i+j-1]
+        end
+    end
+
+    return out
+end
+
 generatePerturbation(samples, σ, windowlength) = 
         generatePerturbation(defaultRNG, samples, σ, windowlength)
 
+generatePerturbation_v(samples, σ, windowlength) = 
+        generatePerturbation_v(defaultRNG, samples, σ, windowlength)
 
 
 """
@@ -75,7 +98,7 @@ function MCMCTrajectory(rng, fₓ, x₀, α, samples, σ, windowlength)
     state = zeros(2*length(x₀),samples)
     state[1:N,1]     .= x₀
     @inbounds for i in 1:N
-        state[N+i,:] .= generatePerturbation(rng, samples,σ,windowlength)
+        state[N+i,:] .= generatePerturbation_v(rng, samples,σ,windowlength)
     end
 
     @inbounds for i in 2:samples
