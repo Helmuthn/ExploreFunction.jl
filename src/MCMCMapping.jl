@@ -134,7 +134,7 @@ A matrix `A` and vector `b` such that min_x ||Ax - b|| s.t. x≥0 results in the
 minimum path discrepancy using the threshold approximation.
 """
 function GenerateConstraints(gradients)
-    return (hcat(gradients',-gradients'), 2*sum(abs2,gradients,dims=1))
+    return (hcat(gradients',-gradients'), 2*sum(abs2,gradients,dims=1)[:])
 end
 
 """
@@ -145,11 +145,13 @@ hole in the augmented space. Uses JuMP and COSMO for now, could be changed later
 """
 function SolveMinProb(A,b)
     M, N = size(A)
+    println(size(A))
+    println(size(b))
 
-    model = Model(COSMO.Optimizer)
+    model = Model(with_optimizer(COSMO.Optimizer))
     set_silent(model)
     @variable(model, x[1:N] >= 0)
-    @objective(model, Min, x' * A' * A * x - 2 * b' * A * x)
+    @objective(model, Min, x' * A' * A * x - 2 * b' * A * x + b' * b)
     optimize!(model)
 
     return objective_value(model)
