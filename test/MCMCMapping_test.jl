@@ -21,7 +21,7 @@ end
     @testset "Dimensions" begin
         x₀ = [1, 2]
         fₓ(x) = x
-        traject = MCMCTrajectory(fₓ,x₀,1,100,1,10)
+        traject, ~ = MCMCTrajectory(fₓ,x₀,1,100,1,10)
         @test size(traject) == (4,100)
     end
 end
