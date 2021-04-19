@@ -145,8 +145,6 @@ hole in the augmented space. Uses JuMP and COSMO for now, could be changed later
 """
 function SolveMinProb(A,b)
     M, N = size(A)
-    println(size(A))
-    println(size(b))
 
     model = Model(with_optimizer(COSMO.Optimizer))
     set_silent(model)
