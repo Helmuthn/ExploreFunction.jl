@@ -109,7 +109,7 @@ function MCMCTrajectory(rng, fₓ, x₀, α, samples, σ, windowlength)
         xₜ = @view state[1:N,i-1]
         uₜ = @view state[N+1:end,i]
         gradients[:,i-1] = fₓ(xₜ)
-        state[1:N,i] = xₜ + α * (uₜ .- gradients[i-1,:])
+        state[1:N,i] = xₜ + α * (uₜ .- gradients[:,i-1])
     end
     gradients[:,end] =  fₓ(state[1:N,end])
 
