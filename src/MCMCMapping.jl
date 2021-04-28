@@ -240,10 +240,7 @@ function SolveMinProb_sorted(A1, A2, b1, b2)
     @constraint(model, A2 * y .>= b2)
     @objective(model, Min, x' * x - 2 * y' * x + y' * y)
     optimize!(model)
-    x_v = value.(x)
-    y_v = value.(y)
-    #obj = max(0,x_v' * x_v - 2 * y_v' * x_v + y_v' * y_v)
-    println((x_v,y_v))
+
     if isinf(objective_value(model))
         return 0
     else
