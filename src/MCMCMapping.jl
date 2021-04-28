@@ -134,7 +134,11 @@ A matrix `A` and vector `b` such that min_x ||Ax - b|| s.t. x≥0 results in the
 minimum path discrepancy using the threshold approximation.
 """
 function GenerateConstraints(gradients)
-    return (hcat(gradients',-gradients'), 2*sum(abs2,gradients,dims=1)[:])
+    return (hcat(gradients',-gradients'), -2*sum(abs2,gradients,dims=1)[:])
+end
+
+function GenerateConstraints_c(gradients)
+    return (gradients', sum(abs2,gradients,dims=1)[:])
 end
 
 """
@@ -155,6 +159,26 @@ function SolveMinProb(A,b)
     return objective_value(model)
 end
 
+function SolveMinProb_c(A, b)
+    M, N = size(A)
+    println((M,N))
+    mid = Int(M//2)
+
+    model = Model(with_optimizer(COSMO.Optimizer))
+    set_silent(model)
+    @variable(model, x[1:N])
+    @variable(model, y[1:N])
+    @constraint(model, A[1:mid,:] * x .>= b[1:mid])
+    @constraint(model, -A[mid+1:end,:] * y .>= b[mid+1,:])
+    @objective(model, Min, x' * x - 2 * y' * x + y' * y)
+    optimize!(model)
+    if isinf(objective_value(model))
+        return 0
+    else
+        return objective_value(model)
+    end
+end
+
 """
     MinimumHoleSize(gradients)
 
@@ -172,3 +196,63 @@ function MinimumHoleSize(gradients)
     A, b = GenerateConstraints(gradients)
     return SolveMinProb(A, b)
 end
+
+function MinimumHoleSize_c(gradients)
+    A, b = GenerateConstraints_c(gradients)
+    return SolveMinProb_c(A, b)
+end
+export MinimumHoleSize_c
+
+
+function GenerateConstraints_sorted(gradients,directions)
+
+    # Split into two halves
+    M, N = size(gradients)
+    mid = Int(N//2)
+
+    A1 = directions[:,1:mid]
+    A2 = -directions[:,mid+1:end]
+
+    b1 = zeros(mid)
+    b2 = zeros(mid)
+    for i in 1:mid
+        b1[i] = directions[:,i]' * gradients[:,i]
+        b2[i] = -directions[:,mid+i]' * gradients[:,mid+i]
+    end
+
+    return (A1', A2', b1, b2)
+end
+
+function SolveMinProb_sorted(A1, A2, b1, b2)
+    M1, N1 = size(A1)
+    M2, N2 = size(A2)
+
+    # Flag for monotonic --> no constraints = zero distance
+    if M1 == 0 || M2 == 0
+        return 0
+    end
+
+    model = Model(with_optimizer(COSMO.Optimizer))
+    set_silent(model)
+    @variable(model, x[1:N1])
+    @variable(model, y[1:N2])
+    @constraint(model, A1 * x .>= b1)
+    @constraint(model, A2 * y .>= b2)
+    @objective(model, Min, x' * x - 2 * y' * x + y' * y)
+    optimize!(model)
+    x_v = value.(x)
+    y_v = value.(y)
+    #obj = max(0,x_v' * x_v - 2 * y_v' * x_v + y_v' * y_v)
+    println((x_v,y_v))
+    if isinf(objective_value(model))
+        return 0
+    else
+        return objective_value(model)
+    end
+end
+
+function MinimumHoleSize_sorted(gradients, directions)
+    A1, A2, b1, b2 = GenerateConstraints_sorted(gradients, directions)
+    return SolveMinProb_sorted(A1, A2, b1, b2)
+end
+export MinimumHoleSize_sorted
