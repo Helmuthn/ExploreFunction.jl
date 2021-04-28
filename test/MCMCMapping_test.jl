@@ -25,3 +25,15 @@ end
         @test size(traject) == (4,100)
     end
 end
+
+@testset "minimumdistance" begin
+    A = zeros(1,3)
+    B = zeros(1,4)
+    A[1,:] = [1; 3; 4]
+    B[1,:] = [5; 6; 7; 8]
+    @test minimumdistance(A,B) == 1
+    @test minimumdistance(B,A) == 1
+    @test minimumdistance(A,A) == 0
+    B[1,:] = [9; 6; 7; 8]
+    @test minimumdistance(A,B) == 2
+end

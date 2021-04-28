@@ -4,7 +4,7 @@ using LoopVectorization: @avxt
 using JuMP
 using COSMO
 
-export generatePerturbation, MCMCTrajectory, MinimumHoleSize
+export generatePerturbation, MCMCTrajectory, MinimumHoleSize, detectTransitions, minimumdistance
 
 
 defaultRNG = MersenneTwister()
@@ -121,7 +121,7 @@ MCMCTrajectory(fₓ, x₀, α, samples, σ, windowlength) =
 
 
 """
-    GenerateConstraints(gradients)
+    GenerateConstraints(gradients, directions)
 
 Generates the constraints used to compute the minimum spacing between
 the forward path and reverse path in the augmented space.
@@ -133,78 +133,7 @@ the forward path and reverse path in the augmented space.
 A matrix `A` and vector `b` such that min_x ||Ax - b|| s.t. x≥0 results in the 
 minimum path discrepancy using the threshold approximation.
 """
-function GenerateConstraints(gradients)
-    return (hcat(gradients',-gradients'), -2*sum(abs2,gradients,dims=1)[:])
-end
-
-function GenerateConstraints_c(gradients)
-    return (gradients', sum(abs2,gradients,dims=1)[:])
-end
-
-"""
-    SolveMinProb(A,b)
-
-Helper function solving minₓ ||Ax - b|| s.t. x≥0 giving the minimum size of the
-hole in the augmented space. Uses JuMP and COSMO for now, could be changed later
-"""
-function SolveMinProb(A,b)
-    M, N = size(A)
-
-    model = Model(with_optimizer(COSMO.Optimizer))
-    set_silent(model)
-    @variable(model, x[1:N] >= 0)
-    @objective(model, Min, x' * A' * A * x - 2 * b' * A * x + b' * b)
-    optimize!(model)
-
-    return objective_value(model)
-end
-
-function SolveMinProb_c(A, b)
-    M, N = size(A)
-    println((M,N))
-    mid = Int(M//2)
-
-    model = Model(with_optimizer(COSMO.Optimizer))
-    set_silent(model)
-    @variable(model, x[1:N])
-    @variable(model, y[1:N])
-    @constraint(model, A[1:mid,:] * x .>= b[1:mid])
-    @constraint(model, -A[mid+1:end,:] * y .>= b[mid+1,:])
-    @objective(model, Min, x' * x - 2 * y' * x + y' * y)
-    optimize!(model)
-    if isinf(objective_value(model))
-        return 0
-    else
-        return objective_value(model)
-    end
-end
-
-"""
-    MinimumHoleSize(gradients)
-
-Given a matrix representing the gradients along a path, 
-returns the minimum size of the geometric hole for trajectories
-along that path.
-
-### Arguments
- - `gradients` -- M×N matrix of N timesteps of gradients
-
-### Returns 
-The list of the gradeints
-"""
-function MinimumHoleSize(gradients)
-    A, b = GenerateConstraints(gradients)
-    return SolveMinProb(A, b)
-end
-
-function MinimumHoleSize_c(gradients)
-    A, b = GenerateConstraints_c(gradients)
-    return SolveMinProb_c(A, b)
-end
-export MinimumHoleSize_c
-
-
-function GenerateConstraints_sorted(gradients,directions)
+function GenerateConstraints(gradients,directions)
 
     # Split into two halves
     M, N = size(gradients)
@@ -215,7 +144,7 @@ function GenerateConstraints_sorted(gradients,directions)
 
     b1 = zeros(mid)
     b2 = zeros(mid)
-    for i in 1:mid
+    @inbounds @simd for i in 1:mid
         b1[i] = directions[:,i]' * gradients[:,i]
         b2[i] = -directions[:,mid+i]' * gradients[:,mid+i]
     end
@@ -223,7 +152,13 @@ function GenerateConstraints_sorted(gradients,directions)
     return (A1', A2', b1, b2)
 end
 
-function SolveMinProb_sorted(A1, A2, b1, b2)
+"""
+    SolveMinProb(A1, A2, b1, b2)
+
+Helper function solving minₓ ||Ax - b|| s.t. x≥0 giving the minimum size of the
+hole in the augmented space. Uses JuMP and COSMO for now, could be changed later
+"""
+function SolveMinProb(A1, A2, b1, b2)
     M1, N1 = size(A1)
     M2, N2 = size(A2)
 
@@ -248,8 +183,53 @@ function SolveMinProb_sorted(A1, A2, b1, b2)
     end
 end
 
-function MinimumHoleSize_sorted(gradients, directions)
-    A1, A2, b1, b2 = GenerateConstraints_sorted(gradients, directions)
-    return SolveMinProb_sorted(A1, A2, b1, b2)
+"""
+    MinimumHoleSize(gradients, directions)
+
+Given a matrix representing the gradients along a path, 
+returns the minimum size of the geometric hole for trajectories
+along that path.
+
+### Arguments
+ - `gradients`  -- M×N matrix of N timesteps of gradients
+ - `directions` -- M×N matrix of N timesteps of step directions
+
+### Returns 
+The list of the gradeints
+"""
+function MinimumHoleSize(gradients, directions)
+    A1, A2, b1, b2 = GenerateConstraints(gradients, directions)
+    return SolveMinProb(A1, A2, b1, b2)
 end
-export MinimumHoleSize_sorted
+
+"""
+    detectTransitions(discrepancies, threshold, pathlength)
+
+Detects the transitions by applying a simple threshold
+"""
+function detectTransitions(discrepancies, threshold, pathlength)
+    unstable = Int(findall(discrepancies .> threshold) .+ floor(pathlength/2))
+	stable = Int(findall(discrepancies .<= threshold) .+ floor(pathlength/2))
+    return unstable, stable
+end
+
+"""
+    minimumdistance(A,B)
+
+Returns the minimum distance between two sets of points.
+Each column corresponds to a point.
+"""
+function minimumdistance(A,B)
+    M1, N1 = size(A)
+    M2, N2 = size(B)
+
+    min_dist = Inf * ones(N1)
+
+    Threads.@threads for i in 1:N1
+        @inbounds for j in 1:N2
+            min_dist[i] = min(min_dist[i],sum(abs2,A[:,i] - B[:,j]))
+        end
+    end
+    
+    return sqrt(minimum(min_dist))
+end
