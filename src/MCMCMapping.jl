@@ -4,7 +4,7 @@ using LoopVectorization: @avxt
 using JuMP
 using COSMO
 
-export generatePerturbation, MCMCTrajectory, MinimumHoleSize, detectTransitions, minimumdistance
+export generatePerturbation, MCMCTrajectory, MinimumHoleSize, detectTransitions, minimumdistance, FormNetwork
 
 
 defaultRNG = MersenneTwister()
@@ -230,6 +230,77 @@ function minimumdistance(A,B)
             min_dist[i] = min(min_dist[i],sum(abs2,A[:,i] - B[:,j]))
         end
     end
-    
+
     return sqrt(minimum(min_dist))
+end
+
+"""
+    FormNetwork(dataset, holesizes)
+
+Takes a dataset of positions in the parameter space 
+and the transition labels, generates the
+network structure.
+
+Uses a naive approach of sorting the points into clusters.
+"""
+function FormNetwork(dataset, transitions, threshold)
+
+    # Begin by splitting the dataset along the transitions
+    # These form the initial clusters.
+    clusterindices = [Array(1:transitions[1]-1)]
+    last_ind = transitions[1]
+    for i in 2:length(transitions)
+        if transitions[i] > last_ind+2
+            push!(clusterindices, last_ind+1:transitions[i]-1)
+        end
+        last_ind = transitions[i]
+    end
+    if transitions[end] < size(dataset)[2]
+        push!(clusterindices, transitions[end]+1:size(dataset)[2])
+    end
+
+    # Next, cluster the clusters by a threshold, recording indices
+    clusters_included = [[i] for i in 1:length(clusterindices)]
+    ind1 = 1
+    while ind1 < length(clusterindices)
+        ind2 = ind1+1
+        while ind2 <= length(clusterindices)
+            cluster1 = @view dataset[:,clusterindices[ind1]]
+            cluster2 = @view dataset[:,clusterindices[ind2]]
+            dist = minimumdistance(cluster2,cluster1)
+
+            # If clusters are close enough, merge
+            if dist < threshold
+                append!(clusterindices[ind1], clusterindices[ind2])
+                append!(clusters_included[ind1],clusters_included[ind2])
+                deleteat!(clusterindices,ind2)
+                deleteat!(clusters_included,ind2)
+            else
+                ind2 += 1
+            end
+        end
+        ind1 += 1
+    end
+
+    # Using sequential connections, form the graph (assuming sparsity)
+    edges = []
+    for i in 1:length(clusters_included)
+        for j in i+1:length(clusters_included)
+            # Check for inclusion of sequential initial clusters
+            offsets = [i1 - i2  for i1 in clusters_included[i] 
+                                for i2 in clusters_included[j]]
+            connection = findfirst((x)-> (abs(x)==1), offsets)
+            if !isnothing(connection)
+                push!(edges, [i,j])
+            end
+        end
+    end
+
+    # Finally, as a coarse approximation, compute the means of the clusters
+    means = zeros(2,length(clusterindices))
+    for i in 1:length(clusterindices)
+        means[:,i] = sum(dataset[:,clusterindices[i]], dims=2)/length(clusterindices[i])
+    end
+
+    return (edges, means)
 end
