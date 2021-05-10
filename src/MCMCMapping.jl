@@ -176,10 +176,10 @@ function SolveMinProb(A1, A2, b1, b2)
     @objective(model, Min, x' * x - 2 * y' * x + y' * y)
     optimize!(model)
 
-    if isinf(objective_value(model))
+    if isinf(objective_value(model)) || objective_value(model) < 0
         return 0
     else
-        return objective_value(model)
+        return sqrt(objective_value(model))
     end
 end
 

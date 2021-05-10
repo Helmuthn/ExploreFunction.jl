@@ -90,6 +90,16 @@ end
     A2 = -A1;
     b1 = ones(2)
     b2 = ones(2)
-    true_min_dist = 2
+    true_min_dist = sqrt(2)
     @test true_min_dist ≈ ExploreFunction.SolveMinProb(A1,A2,b1,b2)
+end
+
+@testset "MinimumHoleSize" begin
+    gradients = ones(1,5)
+    gradients[1,3] = 0
+    gradients[1,4:5] .= -1
+    directions = ones(1,5) 
+    
+    true_size = 2
+    @test true_size ≈ MinimumHoleSize(gradients,directions)
 end
