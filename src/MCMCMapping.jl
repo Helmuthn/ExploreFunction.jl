@@ -208,8 +208,8 @@ end
 Detects the transitions by applying a simple threshold
 """
 function detectTransitions(discrepancies, threshold, pathlength)
-    unstable = Int(findall(discrepancies .> threshold) .+ floor(pathlength/2))
-	stable = Int(findall(discrepancies .<= threshold) .+ floor(pathlength/2))
+    unstable = Int.(findall(discrepancies .> threshold) .+ floor(pathlength/2))
+    stable = Int.(findall(discrepancies .<= threshold) .+ floor(pathlength/2))
     return unstable, stable
 end
 
@@ -264,6 +264,7 @@ function FormNetwork(dataset, transitions, threshold)
     ind1 = 1
     while ind1 < length(clusterindices)
         ind2 = ind1+1
+        no_merge = true
         while ind2 <= length(clusterindices)
             cluster1 = @view dataset[:,clusterindices[ind1]]
             cluster2 = @view dataset[:,clusterindices[ind2]]
@@ -279,7 +280,9 @@ function FormNetwork(dataset, transitions, threshold)
                 ind2 += 1
             end
         end
-        ind1 += 1
+        if no_merge
+            ind1 += 1
+        end
     end
 
     # Using sequential connections, form the graph (assuming sparsity)
