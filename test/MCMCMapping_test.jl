@@ -83,3 +83,13 @@ end
     @test b1 == b1_true 
     @test b2 == b2_true
 end
+
+@testset "SolveMinProg" begin
+    A1 = [sqrt(2)  sqrt(2);
+          sqrt(2) -sqrt(2)]
+    A2 = -A1;
+    b1 = ones(2)
+    b2 = ones(2)
+    true_min_dist = 2
+    @test true_min_dist ≈ ExploreFunction.SolveMinProb(A1,A2,b1,b2)
+end

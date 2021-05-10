@@ -2,7 +2,7 @@ using LinearAlgebra: norm
 using Random: MersenneTwister
 using LoopVectorization: @avxt
 using JuMP
-using COSMO
+using OSQP
 
 export generatePerturbation, MCMCTrajectory, MinimumHoleSize, detectTransitions, minimumdistance, FormNetwork
 
@@ -156,7 +156,7 @@ end
     SolveMinProb(A1, A2, b1, b2)
 
 Helper function solving minₓ ||Ax - b|| s.t. x≥0 giving the minimum size of the
-hole in the augmented space. Uses JuMP and COSMO for now, could be changed later
+hole in the augmented space. Uses JuMP and OSQP for now, could be changed later
 """
 function SolveMinProb(A1, A2, b1, b2)
     M1, N1 = size(A1)
@@ -167,7 +167,7 @@ function SolveMinProb(A1, A2, b1, b2)
         return 0
     end
 
-    model = Model(with_optimizer(COSMO.Optimizer))
+    model = Model(OSQP.Optimizer)
     set_silent(model)
     @variable(model, x[1:N1])
     @variable(model, y[1:N2])
