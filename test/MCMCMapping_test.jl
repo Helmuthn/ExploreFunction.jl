@@ -62,3 +62,24 @@ end
     end
     @test stable == stable_true
 end
+
+
+@testset "GenerateConstraints" begin
+    directions = randn(3,5)
+    gradients = randn(3,5)
+
+    A1_true = directions[:,1:2]
+    A2_true = -directions[:,4:5]
+    b1_true = zeros(2)
+    b2_true = zeros(2)
+    b1_true[1] = A1_true[:,1]' * gradients[:,1]
+    b1_true[2] = A1_true[:,2]' * gradients[:,2]
+    b2_true[1] = A2_true[:,1]' * gradients[:,4]
+    b2_true[2] = A2_true[:,2]' * gradients[:,5]
+
+    A1, A2, b1, b2 = ExploreFunction.GenerateConstraints(gradients, directions)
+    @test A1 == A1_true'
+    @test A2 == A2_true'
+    @test b1 == b1_true 
+    @test b2 == b2_true
+end

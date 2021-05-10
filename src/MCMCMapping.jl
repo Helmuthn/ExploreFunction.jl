@@ -137,14 +137,14 @@ function GenerateConstraints(gradients,directions)
 
     # Split into two halves
     M, N = size(gradients)
-    mid = Int(N//2)
+    mid = Int(ceil(N/2))
 
-    A1 = directions[:,1:mid]
+    A1 = directions[:,1:mid-1]
     A2 = -directions[:,mid+1:end]
 
-    b1 = zeros(mid)
-    b2 = zeros(mid)
-    @inbounds @simd for i in 1:mid
+    b1 = zeros(mid-1)
+    b2 = zeros(mid-1)
+    @inbounds @simd for i in 1:mid-1
         b1[i] = directions[:,i]' * gradients[:,i]
         b2[i] = -directions[:,mid+i]' * gradients[:,mid+i]
     end
