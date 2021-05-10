@@ -85,12 +85,12 @@ end
 end
 
 @testset "SolveMinProg" begin
-    A1 = [sqrt(2)  sqrt(2);
-          sqrt(2) -sqrt(2)]
+    A1 = [1/sqrt(2)  1/sqrt(2);
+          1/sqrt(2) -1/sqrt(2)]
     A2 = -A1;
     b1 = ones(2)
     b2 = ones(2)
-    true_min_dist = sqrt(2)
+    true_min_dist = 2sqrt(2)
     @test true_min_dist ≈ ExploreFunction.SolveMinProb(A1,A2,b1,b2)
 end
 
