@@ -91,7 +91,7 @@ end
     b1 = ones(2)
     b2 = ones(2)
     true_min_dist = 2sqrt(2)
-    @test true_min_dist ≈ ExploreFunction.SolveMinProb(A1,A2,b1,b2)
+    @test true_min_dist ≈ ExploreFunction.SolveMinProb(A1,A2,b1,b2) atol=0.01
 end
 
 @testset "MinimumHoleSize" begin
@@ -101,5 +101,51 @@ end
     directions = ones(1,5) 
     
     true_size = 2
-    @test true_size ≈ MinimumHoleSize(gradients,directions)
+    @test true_size ≈ MinimumHoleSize(gradients,directions) atol=0.01
+end
+
+@testset "FormNetwork" begin
+    dataset = 0.01randn(2,90)
+    dataset[1,11:20] += range(0,1,length=10)
+    dataset[1,21:end] .+= 1
+    dataset[2,31:40] += range(0,1,length=10)
+    dataset[2,41:end] .+= 1
+    dataset[1,51:60] -= range(0,1,length=10)
+    dataset[1,61:end] .-= 1
+    dataset[2,71:80] -= range(0,1,length=10)
+    dataset[2,81:end] .-= 1
+
+    transitions = zeros(40)
+    transitions[1:10] = 11:20
+    transitions[11:20] = 31:40
+    transitions[21:30] = 51:60
+    transitions[31:40] = 71:80
+
+    threshold = 0.2
+
+    edges, mean = FormNetwork(dataset,transitions,threshold)
+    # Sort the edges lexicographical order
+    sort!(edges,by= x -> 10*minimum(x) + maximum(x))
+    edges_comp = zeros(Int,2,length(edges))
+    for i in 1:length(edges)
+        if edges[i][1] < edges[i][2]
+            edges_comp[1,i] = edges[i][1]
+            edges_comp[2,i] = edges[i][2]
+        else
+            edges_comp[2,i] = edges[i][1]
+            edges_comp[1,i] = edges[i][2]
+        end
+    end
+    
+    true_means = zeros(size(mean))
+    true_means[:,1] = [0,0]
+    true_means[:,2] = [1,0]
+    true_means[:,3] = [1,1]
+    true_means[:,4] = [0,1]
+
+    true_edges = [  1 1 2 3;
+                    2 4 3 4]
+
+    @test mean ≈ true_means atol = 0.1
+    @test true_edges == edges_comp
 end

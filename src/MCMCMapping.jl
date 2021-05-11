@@ -247,7 +247,7 @@ function FormNetwork(dataset, transitions, threshold)
 
     # Begin by splitting the dataset along the transitions
     # These form the initial clusters.
-    clusterindices = [Array(1:transitions[1]-1)]
+    clusterindices = [Array{Int}(1:transitions[1]-1)]
     last_ind = transitions[1]
     for i in 2:length(transitions)
         if transitions[i] > last_ind+2
