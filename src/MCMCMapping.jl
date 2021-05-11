@@ -276,6 +276,7 @@ function FormNetwork(dataset, transitions, threshold)
                 append!(clusters_included[ind1],clusters_included[ind2])
                 deleteat!(clusterindices,ind2)
                 deleteat!(clusters_included,ind2)
+                no_merge = false
             else
                 ind2 += 1
             end
