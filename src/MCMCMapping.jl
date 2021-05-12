@@ -121,6 +121,28 @@ MCMCTrajectory(fₓ, x₀, α, samples, σ, windowlength) =
 
 
 """
+    resampleSpatialTrajectory(state, δ)
+
+Resamples the trajectory by removing steps closer than δ in parameters.
+"""
+function resampleSpatialTrajectory(state, δ)
+    M, N = size(state)
+    δ = δ^2
+    param_range = 1:Int(M/2)
+    keep = ones(Bool,N)
+    lastind = 1
+    for i in 2:N
+        if sum(abs2,state[param_range,i] - state[param_range,lastind]) < δ
+            keep[i] = false
+        else
+            lastind = i
+        end
+    end
+    return keep
+end
+
+
+"""
     GenerateConstraints(gradients, directions)
 
 Generates the constraints used to compute the minimum spacing between
