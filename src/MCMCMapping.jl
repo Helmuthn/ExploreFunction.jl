@@ -4,7 +4,7 @@ using LoopVectorization: @avxt
 using JuMP
 using OSQP
 
-export generatePerturbation, MCMCTrajectory, MinimumHoleSize, detectTransitions, minimumdistance, FormNetwork
+export generatePerturbation, MCMCTrajectory, MinimumHoleSize, detectTransitions, minimumdistance, FormNetwork, GenerateConstraints
 
 
 defaultRNG = MersenneTwister()
@@ -153,12 +153,12 @@ function GenerateConstraints(gradients,directions)
 end
 
 """
-    SolveMinProb(A1, A2, b1, b2)
+    SolveMinProb(A1, A2, b1, b2, λ)
 
 Helper function solving minₓ ||Ax - b|| s.t. x≥0 giving the minimum size of the
 hole in the augmented space. Uses JuMP and OSQP for now, could be changed later
 """
-function SolveMinProb(A1, A2, b1, b2)
+function SolveMinProb(A1, A2, b1, b2, λ)
     M1, N1 = size(A1)
     M2, N2 = size(A2)
 
@@ -173,18 +173,23 @@ function SolveMinProb(A1, A2, b1, b2)
     @variable(model, y[1:N2])
     @constraint(model, A1 * x .>= b1)
     @constraint(model, A2 * y .>= b2)
-    @objective(model, Min, x' * x - 2 * y' * x + y' * y)
+    @objective(model, Min, x' * x - 2 * y' * x + y' * y + λ*(x' * x + y' * y))
     optimize!(model)
 
-    if isinf(objective_value(model)) || objective_value(model) < 0
+    x_v = value.(x)
+    y_v = value.(y)
+
+    v_comp = x_v' * x_v - 2 * y_v' * x_v + y_v' * y_v
+
+    if isinf(v_comp) || v_comp < 0
         return 0
     else
-        return sqrt(objective_value(model))
+        return sqrt(v_comp)
     end
 end
 
 """
-    MinimumHoleSize(gradients, directions)
+    MinimumHoleSize(gradients, directions, λ)
 
 Given a matrix representing the gradients along a path, 
 returns the minimum size of the geometric hole for trajectories
@@ -197,9 +202,9 @@ along that path.
 ### Returns 
 The list of the gradeints
 """
-function MinimumHoleSize(gradients, directions)
+function MinimumHoleSize(gradients, directions, λ)
     A1, A2, b1, b2 = GenerateConstraints(gradients, directions)
-    return SolveMinProb(A1, A2, b1, b2)
+    return SolveMinProb(A1, A2, b1, b2, λ)
 end
 
 """

@@ -91,7 +91,7 @@ end
     b1 = ones(2)
     b2 = ones(2)
     true_min_dist = 2sqrt(2)
-    @test true_min_dist ≈ ExploreFunction.SolveMinProb(A1,A2,b1,b2) atol=0.01
+    @test true_min_dist ≈ ExploreFunction.SolveMinProb(A1,A2,b1,b2, 0) atol=0.01
 end
 
 @testset "MinimumHoleSize" begin
@@ -101,7 +101,7 @@ end
     directions = ones(1,5) 
     
     true_size = 2
-    @test true_size ≈ MinimumHoleSize(gradients,directions) atol=0.01
+    @test true_size ≈ MinimumHoleSize(gradients,directions, 0) atol=0.01
 end
 
 @testset "FormNetwork" begin
