@@ -180,23 +180,25 @@ end
 Helper function solving minₓ ||Ax - b|| s.t. x≥0 giving the minimum size of the
 hole in the augmented space. Uses JuMP and OSQP for now, could be changed later
 """
-function SolveMinProb(A1, A2, b1, b2, λ)
+function SolveMinProb(A1, A2, b1, b2, λ, prune)
     M1, N1 = size(A1)
     M2, N2 = size(A2)
 
     # Prune
-    for i in reverse(1:M1-1)
-        if A1[i,:]' * A1[end,:] < .5
-            A1 = A1[i+1:end,:]
-            b1 = b1[i+1:end]
-            break
+    if prune
+        for i in reverse(1:M1-1)
+            if A1[i,:]' * A1[end,:] < .5
+                A1 = A1[i+1:end,:]
+                b1 = b1[i+1:end]
+                break
+            end
         end
-    end
-    for i in 2:M2
-        if A2[i,:]' * A2[1,:] < .5
-            A2 = A2[1:i-1,:]
-            b2 = b2[1:i-1]
-            break
+        for i in 2:M2
+            if A2[i,:]' * A2[1,:] < .5
+                A2 = A2[1:i-1,:]
+                b2 = b2[1:i-1]
+                break
+            end
         end
     end
     M1, N1 = size(A1)
@@ -227,6 +229,8 @@ function SolveMinProb(A1, A2, b1, b2, λ)
         return sqrt(v_comp)
     end
 end
+
+SolveMinProb(A1, A2, b1, b2, λ) = SolveMinProb(A1, A2, b1, b2, λ, true)
 
 """
     MinimumHoleSize(gradients, directions, λ)
