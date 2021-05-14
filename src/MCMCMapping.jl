@@ -42,6 +42,28 @@ function generatePerturbation(rng, samples, σ, windowlength)
 end
 
 export generatePerturbation_v
+
+"""
+    generatePerturbation_v([ rng,] samples, σ, windowlength)
+
+Generates a random perturbation trajectory.
+
+The trajectory is made of a random gaussian vector, filtered
+through convolution with normalized Hann window of a given length.
+Equivalent to generatePerturbation but uses LoopVectorization.
+
+### Arguments
+ - `rng`          -- Random number generator (Optional)
+ - `samples`      -- The number of timesteps for the perturbation
+ - `σ`            -- The standard deviation of any given Gaussian sample
+ - `windowlength` -- The length of the Hann window
+
+ ### Returns
+ A filtered Gaussian vector of length `samples`
+
+ ### Notes 
+ Performs the convolution directly, assumes ``windowlength << samples``
+"""
 function generatePerturbation_v(rng,samples, σ, windowlength)
 
     perturbation = σ * randn(rng, samples + windowlength)
@@ -124,6 +146,14 @@ MCMCTrajectory(fₓ, x₀, α, samples, σ, windowlength) =
     resampleSpatialTrajectory(state, δ)
 
 Resamples the trajectory by removing steps closer than δ in parameters.
+
+### Arguments
+ - `state`  --  A matrix where columns represent N samples in the 
+                M-dimensional parameter-control space
+ - `δ`      --  Minimum step distance 
+
+### Returns
+A vector of N booleans with false if the sample should be removed.
 """
 function resampleSpatialTrajectory(state, δ)
     M, N = size(state)
@@ -150,10 +180,14 @@ the forward path and reverse path in the augmented space.
 
 ### Arguments
  - `gradients`  -- Gradients along the trajectory
+ - `directions` -- normalized step direction along the trajectory
  
 ### Returns
-A matrix `A` and vector `b` such that min_x ||Ax - b|| s.t. x≥0 results in the 
-minimum path discrepancy using the threshold approximation.
+    (A1, A2, b1, b2)
+
+Two matrices `A1, A2` and two vector `b1, b2` such that min_{u,v} ||u - v|| 
+s.t. A1 u ≥ b1, A2 v >= b2 results in the minimum path discrepancy using the 
+threshold approximation.
 """
 function GenerateConstraints(gradients,directions)
 
@@ -175,10 +209,18 @@ function GenerateConstraints(gradients,directions)
 end
 
 """
-    SolveMinProb(A1, A2, b1, b2, λ)
+    SolveMinProb(A1, A2, b1, b2, λ[, prune = true])
 
-Helper function solving minₓ ||Ax - b|| s.t. x≥0 giving the minimum size of the
-hole in the augmented space. Uses JuMP and OSQP for now, could be changed later
+Helper function solving min_{u,v} ||u - v||^2 + λ(||u||^2 + ||v||^2) 
+s.t. A1 u ≥ b1, A2 v >= b2 with optional pruning based on requiring the 
+path to not curve too much. Uses JuMP and OSQP for now, could be changed later.
+
+### Arguments
+ - `A1, A2, b1, b2, λ`  -- The parameters of optimization problem
+ - `prune`              -- Whether or not to prune the constraints 
+
+### Returns 
+||u-v|| for the minimizing `u,v`
 """
 function SolveMinProb(A1, A2, b1, b2, λ, prune)
     M1, N1 = size(A1)
@@ -242,9 +284,10 @@ along that path.
 ### Arguments
  - `gradients`  -- M×N matrix of N timesteps of gradients
  - `directions` -- M×N matrix of N timesteps of step directions
+ - `λ`          -- ℓ2 regularization perameter
 
 ### Returns 
-The list of the gradeints
+The list of the gradients
 """
 function MinimumHoleSize(gradients, directions, λ)
     A1, A2, b1, b2 = GenerateConstraints(gradients, directions)
@@ -284,13 +327,21 @@ function minimumdistance(A,B)
 end
 
 """
-    FormNetwork(dataset, holesizes)
+    FormNetwork(dataset, transitions, threshold)
 
-Takes a dataset of positions in the parameter space 
-and the transition labels, generates the
-network structure.
+Takes a dataset of positions in the parameter space and the transition labels, 
+generates the network structure.
 
-Uses a naive approach of sorting the points into clusters.
+### Arguments
+ - `dataset`        -- The trajectory points
+ - `transitions`    -- Vector of indicies categorized as transitions
+ - `threshold`      -- Threshold for merging two clusters
+
+### Returns
+    (edges, means)
+
+ - `edges`  -- Array of tuples representing connections between nodes
+ - `means`  -- Average of points labeled for each node
 """
 function FormNetwork(dataset, transitions, threshold)
 
