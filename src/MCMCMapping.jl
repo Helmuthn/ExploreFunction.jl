@@ -127,15 +127,15 @@ Resamples the trajectory by removing steps closer than δ in parameters.
 """
 function resampleSpatialTrajectory(state, δ)
     M, N = size(state)
-    δ = δ^2
     param_range = 1:Int(M/2)
     keep = ones(Bool,N)
-    lastind = 1
+    dist = 0
     for i in 2:N
-        if sum(abs2,state[param_range,i] - state[param_range,lastind]) < δ
+        dist += norm(state[param_range,i] - state[param_range,i-1])
+        if  dist < δ
             keep[i] = false
         else
-            lastind = i
+            dist = 0
         end
     end
     return keep
@@ -184,6 +184,24 @@ function SolveMinProb(A1, A2, b1, b2, λ)
     M1, N1 = size(A1)
     M2, N2 = size(A2)
 
+    # Prune
+    for i in reverse(1:M1-1)
+        if A1[i,:]' * A1[end,:] < .5
+            A1 = A1[i+1:end,:]
+            b1 = b1[i+1:end]
+            break
+        end
+    end
+    for i in 2:M2
+        if A2[i,:]' * A2[1,:] < .5
+            A2 = A2[1:i-1,:]
+            b2 = b2[1:i-1]
+            break
+        end
+    end
+    M1, N1 = size(A1)
+    M2, N2 = size(A2)
+
     # Flag for monotonic --> no constraints = zero distance
     if M1 == 0 || M2 == 0
         return 0
@@ -203,7 +221,7 @@ function SolveMinProb(A1, A2, b1, b2, λ)
 
     v_comp = x_v' * x_v - 2 * y_v' * x_v + y_v' * y_v
 
-    if isinf(v_comp) || v_comp < 0
+    if isinf(v_comp) || isnan(v_comp) || v_comp < 0
         return 0
     else
         return sqrt(v_comp)
@@ -328,7 +346,7 @@ function FormNetwork(dataset, transitions, threshold)
     end
 
     # Finally, as a coarse approximation, compute the means of the clusters
-    means = zeros(2,length(clusterindices))
+    means = zeros(size(dataset)[1],length(clusterindices))
     for i in 1:length(clusterindices)
         means[:,i] = sum(dataset[:,clusterindices[i]], dims=2)/length(clusterindices[i])
     end
