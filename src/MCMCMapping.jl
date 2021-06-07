@@ -186,7 +186,7 @@ the forward path and reverse path in the augmented space.
     (A1, A2, b1, b2)
 
 Two matrices `A1, A2` and two vector `b1, b2` such that min_{u,v} ||u - v|| 
-s.t. A1 u ≥ b1, A2 v >= b2 results in the minimum path discrepancy using the 
+s.t. A1 u ≥ b1, A2 v ≥ b2 results in the minimum path discrepancy using the 
 threshold approximation.
 """
 function GenerateConstraints(gradients,directions)
@@ -212,7 +212,7 @@ end
     SolveMinProb(A1, A2, b1, b2, λ[, prune = true])
 
 Helper function solving min_{u,v} ||u - v||^2 + λ(||u||^2 + ||v||^2) 
-s.t. A1 u ≥ b1, A2 v >= b2 with optional pruning based on requiring the 
+s.t. A1 u ≥ b1, A2 v ≥ b2 with optional pruning based on requiring the 
 path to not curve too much. Uses JuMP and OSQP for now, could be changed later.
 
 ### Arguments
