@@ -127,13 +127,17 @@ function MCMCTrajectory(rng, fₓ, x₀, α, samples, σ, windowlength)
     end
     gradients = zeros(N, samples)
 
+    diff = zeros(N)
     @inbounds for i in 2:samples
         xₜ = @view state[1:N,i-1]
         uₜ = @view state[N+1:end,i]
-        gradients[:,i-1] = fₓ(xₜ)
-        state[1:N,i] = xₜ + α * (uₜ .- gradients[:,i-1])
+        g  = @view gradients[:,i-1]
+        g .= fₓ(xₜ)
+        diff .= uₜ .- g
+        state[1:N,i] .= xₜ .+  α .* diff
     end
-    gradients[:,end] =  fₓ(state[1:N,end])
+    g = @view gradients[:,end]
+    g .= fₓ(state[1:N,end])
 
     return (state, gradients)
 end
