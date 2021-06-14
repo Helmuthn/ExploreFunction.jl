@@ -312,18 +312,30 @@ Returns the minimum distance between two sets of points.
 Each column corresponds to a point.
 """
 function minimumdistance(A,B)
-    M1, N1 = size(A)
-    M2, N2 = size(B)
+    M, N1 = size(A)
+    ~, N2 = size(B)
 
     min_dist = Inf * ones(N1)
 
     Threads.@threads for i in 1:N1
+        tmp = zeros(M)
         @inbounds for j in 1:N2
-            min_dist[i] = min(min_dist[i],sum(abs2,A[:,i] - B[:,j]))
+            d = euclideandist_fast!(tmp,A,B,i,j)
+            min_dist[i] = min_dist[i]<d ? min_dist[i] : d
         end
     end
 
-    return sqrt(minimum(min_dist))
+    return sqrt(minimum(min_dist[1:N1]))
+end
+
+"""
+    euclideandist_fast!(tmp,A,B,i,j)
+
+Optimized routine for Euclidean distance between two matrix columns
+"""
+function euclideandist_fast!(tmp,A,B,i,j)
+    tmp .= view(A,:,i) .- view(B,:,j)
+    return sum(abs2,tmp)
 end
 
 """
